@@ -23,6 +23,7 @@ namespace PokeSword.Text.CLI
                 if (Directory.Exists(arg))
                 {
                     files.AddRange(Directory.GetFiles(arg, "*.bin", SearchOption.AllDirectories));
+                    files.AddRange(Directory.GetFiles(arg, "*.dat", SearchOption.AllDirectories));
                     files.AddRange(Directory.GetFiles(arg, "*.btxt", SearchOption.AllDirectories));
                     files.AddRange(Directory.GetFiles(arg, "*.yaml", SearchOption.AllDirectories));
                 }
@@ -44,14 +45,14 @@ namespace PokeSword.Text.CLI
                 
                 if (Path.GetExtension(file) == ".yaml")
                 {
-                    var builder = new DeserializerBuilder().WithNamingConvention(new HyphenatedNamingConvention()).Build() ?? throw new Exception();
+                    var builder = new DeserializerBuilder().WithNamingConvention(HyphenatedNamingConvention.Instance).Build() ?? throw new Exception();
                     var blob = TextBlob.EncodeStrings(builder.Deserialize<Entry[]>(File.ReadAllText(file)));
                     File.WriteAllBytes(Path.ChangeExtension(file, ".btxt"), blob.ToArray());
                 }
                 else
                 {
                     var blob = TextBlob.DecodeStrings(File.ReadAllBytes(file));
-                    var builder = new SerializerBuilder().WithNamingConvention(new HyphenatedNamingConvention()).Build() ?? throw new Exception();
+                    var builder = new SerializerBuilder().DisableAliases().WithNamingConvention(HyphenatedNamingConvention.Instance).Build() ?? throw new Exception();
                     File.WriteAllText(Path.ChangeExtension(file, ".yaml"), builder.Serialize(blob));
                 }
             }

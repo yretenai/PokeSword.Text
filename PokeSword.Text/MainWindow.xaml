@@ -5,5 +5,31 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="PokeSword Text Editor" Height="450" Width="800">
-    <Grid />
+    <Grid Margin="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="1*"/>
+        </Grid.RowDefinitions>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Button Margin="0,0,5,0" Padding="5,0" x:Name="LoadFile">Load YAML/BIN</Button>
+            <Button Grid.Column="1" Margin="0,0,5,0" Padding="5,0" x:Name="LoadFolder">Load Folder</Button>
+            <Label Grid.Column="2">Warning: Loading folders will merge the files</Label>
+            <Button Grid.Column="3" Margin="0,0,5,0" Padding="5,0" x:Name="SaveYaml">Save YAML</Button>
+            <Button Grid.Column="4" Margin="0,0,5,0" Padding="5,0" x:Name="SaveText">Save TXT</Button>
+            <Button Grid.Column="5" Padding="5,0" x:Name="SaveBinText">Save BIN</Button>
+         </Grid>
+        <ScrollViewer Grid.Row="1" Margin="0,5,0,0">
+            <Grid ScrollViewer.CanContentScroll="True">
+                
+            </Grid>
+        </ScrollViewer>
+    </Grid>
 </Window>
