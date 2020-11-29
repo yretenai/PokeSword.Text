@@ -7,11 +7,11 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
-using System.Windows.Forms;
+using System.Windows.Controls;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
-using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
+using Microsoft.Win32;
+using FolderBrowserDialog = System.Windows.Forms.FolderBrowserDialog;
 
 namespace PokeSword.Text
 {
@@ -34,7 +34,7 @@ namespace PokeSword.Text
                 CheckFileExists = true,
                 ValidateNames = true,
                 DereferenceLinks = true,
-                Filter = "Binary Text files (*.bin;*.dat;*.btxt)|*.bin;*.dat;*.btxt|Syntax Files (*.yml;*.yaml)|*.yaml|All files (*.*)|*.*"
+                Filter = Utility.CreateFilter(("Binary Text files", new[] { "bin", "dat" }), ("Syntax files", new[] { "yaml", "yml" }), ("Text files", new[] { "txt" }))
             };
 
             if (dialog.ShowDialog() != true) return;
@@ -49,7 +49,7 @@ namespace PokeSword.Text
                     break;
                 }
                 case ".txt":
-                    // TODO: Process text files (loses data!)
+                    Entries = File.ReadAllLines(dialog.FileName).Select(TextBlob.ParseEntry).ToArray();
                     break;
                 default:
                     Entries = TextBlob.DecodeStrings(File.ReadAllBytes(dialog.FileName));
@@ -90,7 +90,7 @@ namespace PokeSword.Text
                         break;
                     }
                     case ".txt":
-                        // TODO: Process .TXT files (loses data!)
+                        entries.AddRange(File.ReadAllLines(file).Select(TextBlob.ParseEntry).ToArray());
                         break;
                     default:
                         entries.AddRange(TextBlob.DecodeStrings(File.ReadAllBytes(file)));
@@ -108,7 +108,7 @@ namespace PokeSword.Text
             {
                 ValidateNames = true,
                 DereferenceLinks = true,
-                Filter = "NX files (*.dat)|*.dat|NDS files (*.bin)|*.bin|PokeSword files (*.btxt)|*.btxt|Syntax Files (*.yaml)|*.yaml|Text Files (*.txt)|*.txt|All files (*.*)|*.*"
+                Filter = Utility.CreateFilter(("Binary Text files", new[] { "bin", "dat" }), ("Decrypted Binary Text files", new[] { "text" }), ("Syntax files", new[] { "yaml", "yml" }), ("Text files", new[] { "txt" }))
             };
 
             if (dialog.ShowDialog() != true) return;
@@ -121,17 +121,33 @@ namespace PokeSword.Text
                     File.WriteAllText(Path.ChangeExtension(dialog.FileName, ".yaml"), builder.Serialize(Entries));
                     break;
                 case ".txt":
-                    File.WriteAllLines(dialog.FileName, Entries.Select((x, y) => $"{y}, {x.Text.Replace("\n", "\\n")}"));
+                    File.WriteAllLines(dialog.FileName, Entries.Select((x, y) => $"{y}, {x.Text.Replace("\n", "\\n")}[EXTDATA {x.ExData}][MINLNTH {x.MinLength}]"));
                     break;
+                case ".text":
+                {
+                    var blob = TextBlob.EncodeStrings(Entries, false);
+                    File.WriteAllBytes(dialog.FileName, blob.ToArray());
+                    break;
+                }
                 default:
+                {
                     var blob = TextBlob.EncodeStrings(Entries);
                     File.WriteAllBytes(dialog.FileName, blob.ToArray());
                     break;
+                }
             }
         }
 
         [NotifyPropertyChangedInvocator]
         private void OnPropertyChanged([CallerMemberName]
             string? propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+        private void UpdateTree(object? sender, DataGridCellEditEndingEventArgs e)
+        {
+            if (e.EditAction != DataGridEditAction.Commit) return;
+            var entry = (Entry) e.Row.Item;
+            var text = ((TextBox) e.EditingElement).Text;
+            Entries[e.Row.GetIndex()] = TextBlob.ParseEntry(text, entry);
+        }
     }
 }

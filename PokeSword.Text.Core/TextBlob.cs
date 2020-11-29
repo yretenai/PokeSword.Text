@@ -13,16 +13,8 @@ namespace PokeSword.Text.Core
     {
         private const ushort Iv = 0x7C89;
         private const ushort Key = 0x2983;
-
-        private static readonly Dictionary<ushort, char> SpecialChars = new Dictionary<ushort, char>
-        {
-            { 57471, (char) 0x202F }, // nbsp
-            { 57485, '…' },
-            { 57486, '♂' },
-            { 57487, '♀' }
-        };
-
-        private static readonly Dictionary<ushort, string> Names = new Dictionary<ushort, string>
+        
+        private static Dictionary<ushort, string> Names { get; } = new Dictionary<ushort, string>
         {
             { 48639, "NULL" },
             { 48640, "SCROLL" },
@@ -78,6 +70,8 @@ namespace PokeSword.Text.Core
             { 520, "NUM9" }
         };
 
+        private static Dictionary<string, ushort> NamesFlipped { get; } = Names.ToDictionary(x => x.Value, x => x.Key);
+
         public static unsafe Entry[] DecodeStrings(Span<byte> data, bool crypt = true)
         {
             if (data.Length < sizeof(Header)) return Array.Empty<Entry>();
@@ -98,6 +92,7 @@ namespace PokeSword.Text.Core
                 var offset = MemoryMarshal.Read<int>(data.Slice(lineIndex * 8 + header.SectionDataOffset + 4)) + header.SectionDataOffset;
                 var length = MemoryMarshal.Read<ushort>(data.Slice(lineIndex * 8 + header.SectionDataOffset + 8));
                 var entry = strings[lineIndex];
+                entry.MinLength = length;
                 entry.ExData = MemoryMarshal.Read<short>(data.Slice(lineIndex * 8 + header.SectionDataOffset + 10));
                 var line = MemoryMarshal.Cast<byte, ushort>(data.Slice(offset, length * 2));
                 if (crypt) Crypt(ref line, (ushort) (Iv + (ushort) (Key * lineIndex)));
@@ -130,7 +125,7 @@ namespace PokeSword.Text.Core
 
                             if (!Names.TryGetValue(varType, out var varName)) varName = varType.ToString("X4");
 
-                            s = $"[COMMAND {varName}{(vars.Length > 1 ? $" {string.Join(", ", vars.Skip(1))}" : "")}]";
+                            s = $"[COMMAND {varName}{(vars.Length > 1 ? $" {string.Join(" ", vars.Skip(1))}" : "")}]";
                             entry.SyntaxTree ??= new List<Syntax>();
                             entry.SyntaxTree.Add(new Syntax
                             {
@@ -145,12 +140,6 @@ namespace PokeSword.Text.Core
                         default:
                             if (c > 0xE07F)
                             {
-                                if (SpecialChars.TryGetValue(c, out var translatedChar))
-                                {
-                                    s += translatedChar;
-                                    break;
-                                }
-
                                 if (s.Length > 0)
                                 {
                                     entry.SyntaxTree ??= new List<Syntax>();
@@ -161,7 +150,7 @@ namespace PokeSword.Text.Core
                                     totalString += s;
                                 }
 
-                                s = $"[SPECIAL {c:X8}]";
+                                s = $"[SPECIAL {c}]";
                                 entry.SyntaxTree ??= new List<Syntax>();
                                 entry.SyntaxTree.Add(new Syntax
                                 {
@@ -197,6 +186,113 @@ namespace PokeSword.Text.Core
             }
 
             return strings;
+        }
+
+        public static Entry ParseEntry(string text) => ParseEntry(text, null);
+
+        public static Entry ParseEntry(string text, Entry? baseEntry)
+        {
+            var entry = new Entry
+            {
+                Text = text,
+                SyntaxTree = new List<Syntax>(),
+                ExData = baseEntry?.ExData ?? 0,
+                MinLength = baseEntry?.MinLength ?? 0
+            };
+
+            var syntax = new Syntax
+            {
+                Hint = ""
+            };
+            var value = new List<ushort>();
+            for (var index = 0; index < text.Length; index++)
+            {
+                var c = text[index];
+
+                switch (c)
+                {
+                    case '\\' when text.ElementAtOrDefault(index + 1) == 'n':
+                        syntax.Hint += '\n';
+                        continue;
+                    // COMMAND/SPECIAL/EXTDATA/MINLNTH
+                    case '[' when text.Length > index + 10:
+                    {
+                        var fullTag = text.Substring(index, text.IndexOf(']', index + 8));
+                        var tag = fullTag.Substring(1, 7);
+                        var tagValue = fullTag.Substring(8, fullTag.Length - 8).Split(" ", StringSplitOptions.RemoveEmptyEntries);
+                        if (tagValue.Length == 0) break;
+                        switch (tag)
+                        {
+                            case "EXTDATA" when short.TryParse(tagValue[0], out var exData):
+                                entry.ExData = exData;
+                                index += fullTag.Length - 1;
+                                continue;
+                            case "MINLNTH" when ushort.TryParse(tagValue[0], out var minLength):
+                                entry.MinLength = minLength;
+                                index += fullTag.Length - 1;
+                                continue;
+                            case "COMMAND":
+                            {
+                                var tagValues = tagValue.Skip(1).Select(ushort.Parse).ToArray();
+                                if (!NamesFlipped.TryGetValue(tagValue[0], out var tagId))
+                                {
+                                    tagId = ushort.Parse(tagValue[0]);
+                                }
+
+                                if (!string.IsNullOrEmpty(syntax.Hint) || syntax.Value?.Any() == true)
+                                {
+                                    syntax.Value = value.ToArray();
+                                    entry.SyntaxTree.Add(syntax);
+                                }
+
+                                syntax = new Syntax
+                                {
+                                    Hint = fullTag,
+                                    IsCommand = true,
+                                    Value = new[] { tagId }.Concat(tagValues).ToArray()
+                                };
+                                entry.SyntaxTree.Add(syntax);
+                                syntax = new Syntax();
+                                index += fullTag.Length - 1;
+                                continue;
+                            }
+                            case "SPECIAL" when ushort.TryParse(tagValue[0], out var specialId):
+                            {
+                                if (!string.IsNullOrEmpty(syntax.Hint) || syntax.Value?.Any() == true)
+                                {
+                                    syntax.Value = value.ToArray();
+                                    entry.SyntaxTree.Add(syntax);
+                                }
+                            
+                                syntax = new Syntax
+                                {
+                                    Hint = tag,
+                                    IsSpecial = true,
+                                    Value = new[] { specialId }
+                                };
+                                entry.SyntaxTree.Add(syntax);
+                                syntax = new Syntax();
+                                index += fullTag.Length - 1;
+                                continue;
+                            }
+                        }
+
+                        break;
+                    }
+                    default:
+                        syntax.Hint += c;
+                        break;
+                }
+
+            }
+
+            if (!string.IsNullOrEmpty(syntax.Hint) || syntax.Value?.Any() == true)
+            {
+                syntax.Value = value.ToArray();
+                entry.SyntaxTree.Add(syntax);
+            }
+
+            return entry;
         }
 
         private static void GrowSpan<T>(ref Span<T> buffer, int size)
@@ -263,11 +359,15 @@ namespace PokeSword.Text.Core
                 }
 
                 GrowSpan(ref lineData, 1);
+                if (line.MinLength > 0 && line.MinLength > lineData.Length)
+                {
+                    GrowSpan(ref lineData, line.MinLength - lineData.Length);
+                }
                 if (crypt) Crypt(ref lineData, (ushort) (Iv + (ushort) (Key * lineIndex)));
                 BinaryPrimitives.WriteUInt16LittleEndian(data.Slice(lineIndex * 8 + header.SectionDataOffset + 8), (ushort) lineData.Length);
                 GrowSpan(ref data, lineData.Length * 2);
                 MemoryMarshal.Cast<ushort, byte>(lineData).CopyTo(data.Slice(offset));
-                if (data.Length % 4 != 0) GrowSpan(ref data, 4 - data.Length % 4);
+                if (lineData.Length % 4 != 0) GrowSpan(ref data, 4 - data.Length % 4);
             }
 
             header.TotalLength = data.Length - header.SectionDataOffset;

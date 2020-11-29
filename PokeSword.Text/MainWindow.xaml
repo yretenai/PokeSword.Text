@@ -26,9 +26,11 @@
         </Grid>
         <DataGrid Grid.Row="1" x:Name="Data" ScrollViewer.CanContentScroll="True" ItemsSource="{Binding}"
                   DataContext="{Binding Path=Entries, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="false"
-                  IsReadOnly="true">
+                  CellEditEnding="UpdateTree">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Text" Binding="{Binding Text}" Width="1*" />
+                <DataGridTextColumn Header="Text" Binding="{Binding Text}" Width="5*" />
+                <DataGridTextColumn Header="Minimum Length" Binding="{Binding MinLength}" Width="1*" IsReadOnly="True" />
+                <DataGridTextColumn Header="Extra Data" Binding="{Binding ExData}" Width="1*" IsReadOnly="True" />
             </DataGrid.Columns>
         </DataGrid>
     </Grid>

@@ -24,7 +24,6 @@ namespace PokeSword.Text.CLI
                 {
                     files.AddRange(Directory.GetFiles(arg, "*.bin", SearchOption.AllDirectories));
                     files.AddRange(Directory.GetFiles(arg, "*.dat", SearchOption.AllDirectories));
-                    files.AddRange(Directory.GetFiles(arg, "*.btxt", SearchOption.AllDirectories));
                     files.AddRange(Directory.GetFiles(arg, "*.yaml", SearchOption.AllDirectories));
                 }
                 else
@@ -47,7 +46,7 @@ namespace PokeSword.Text.CLI
                 {
                     var builder = new DeserializerBuilder().WithNamingConvention(HyphenatedNamingConvention.Instance).Build() ?? throw new Exception();
                     var blob = TextBlob.EncodeStrings(builder.Deserialize<Entry[]>(File.ReadAllText(file)));
-                    File.WriteAllBytes(Path.ChangeExtension(file, ".btxt"), blob.ToArray());
+                    File.WriteAllBytes(Path.ChangeExtension(file, ".dat"), blob.ToArray());
                 }
                 else
                 {
