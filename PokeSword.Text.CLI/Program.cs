@@ -7,7 +7,7 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace PokeSword.Text.CLI
 {
-    internal class Program
+    internal static class Program
     {
         private static void Main(string[] args)
         {
