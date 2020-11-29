@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PokeSword.Text", "PokeSword.Text\PokeSword.Text.csproj", "{BC687C80-DB31-4E19-8730-62FB996B23EA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PokeSword.Text.Core", "PokeSword.Text.Core\PokeSword.Text.Core.csproj", "{84FC60BE-52CF-42C8-A2AA-20CEC9E0494A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PokeSword.TextText.CLI", "PokeSword.Text.CLI\PokeSword.Text.CLI.csproj", "{9B8BF97B-7482-4086-96CE-B476A6546E37}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BC687C80-DB31-4E19-8730-62FB996B23EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC687C80-DB31-4E19-8730-62FB996B23EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC687C80-DB31-4E19-8730-62FB996B23EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC687C80-DB31-4E19-8730-62FB996B23EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{84FC60BE-52CF-42C8-A2AA-20CEC9E0494A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84FC60BE-52CF-42C8-A2AA-20CEC9E0494A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{84FC60BE-52CF-42C8-A2AA-20CEC9E0494A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{84FC60BE-52CF-42C8-A2AA-20CEC9E0494A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9B8BF97B-7482-4086-96CE-B476A6546E37}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B8BF97B-7482-4086-96CE-B476A6546E37}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B8BF97B-7482-4086-96CE-B476A6546E37}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B8BF97B-7482-4086-96CE-B476A6546E37}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
