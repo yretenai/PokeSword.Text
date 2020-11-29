@@ -34,6 +34,14 @@ namespace PokeSword.Text.CLI
 
             foreach (var file in files)
             {
+                if (!File.Exists(file))
+                {
+                    Console.Error.WriteLine($"Can't open file {file}, it does not exist.");
+                    continue;
+                }
+                
+                Console.WriteLine($"Processing {file}");
+                
                 if (Path.GetExtension(file) == ".yaml")
                 {
                     var builder = new DeserializerBuilder().WithNamingConvention(new HyphenatedNamingConvention()).Build() ?? throw new Exception();
