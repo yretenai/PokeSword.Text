@@ -4,32 +4,32 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
+        DataContext="{Binding RelativeSource={RelativeSource Self}}"
         Title="PokeSword Text Editor" Height="450" Width="800">
     <Grid Margin="5">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="1*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="1*" />
         </Grid.RowDefinitions>
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Button Margin="0,0,5,0" Padding="5,0" x:Name="LoadFile">Load YAML/BIN</Button>
-            <Button Grid.Column="1" Margin="0,0,5,0" Padding="5,0" x:Name="LoadFolder">Load Folder</Button>
-            <Label Grid.Column="2">Warning: Loading folders will merge the files</Label>
-            <Button Grid.Column="3" Margin="0,0,5,0" Padding="5,0" x:Name="SaveYaml">Save YAML</Button>
-            <Button Grid.Column="4" Margin="0,0,5,0" Padding="5,0" x:Name="SaveText">Save TXT</Button>
-            <Button Grid.Column="5" Padding="5,0" x:Name="SaveBinText">Save BIN</Button>
-         </Grid>
-        <ScrollViewer Grid.Row="1" Margin="0,5,0,0">
-            <Grid ScrollViewer.CanContentScroll="True">
-                
-            </Grid>
-        </ScrollViewer>
+            <Button Margin="0,0,5,0" Padding="5,0" x:Name="LoadFile" Click="OpenFile">Load...</Button>
+            <Button Grid.Column="1" Margin="0,0,5,0" Padding="5,0" x:Name="LoadFolder" Click="OpenFolder">Load Folder</Button>
+            <Button Grid.Column="2" Margin="0,0,5,0" Padding="5,0" x:Name="SaveYaml" Click="SaveFile">Save...</Button>
+            <Label Grid.Column="4">Warning: Loading folders will merge the files</Label>
+        </Grid>
+        <DataGrid Grid.Row="1" x:Name="Data" ScrollViewer.CanContentScroll="True" ItemsSource="{Binding}"
+                  DataContext="{Binding Path=Entries, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="false"
+                  IsReadOnly="true">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Text" Binding="{Binding Text}" Width="1*" />
+            </DataGrid.Columns>
+        </DataGrid>
     </Grid>
 </Window>

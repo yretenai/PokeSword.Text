@@ -4,6 +4,7 @@
         <OutputType>WinExe</OutputType>
         <TargetFramework>net5.0-windows</TargetFramework>
         <UseWPF>true</UseWPF>
+        <UseWindowsForms>true</UseWindowsForms>
         <Nullable>enable</Nullable>
         <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
     </PropertyGroup>
@@ -13,6 +14,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="JetBrains.Annotations" Version="2020.3.0" />
       <PackageReference Include="YamlDotNet" Version="9.1.0" />
     </ItemGroup>
 
