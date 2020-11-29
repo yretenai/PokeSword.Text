@@ -16,8 +16,8 @@ before_build:
   - cmd: dotnet restore PokeSword.Text.sln --verbosity m
 build_script:
   - cmd: dotnet publish --configuration Release --self-contained -r win7-x64 -o bin/Standalone
-  - cmd: dotnet publish --configuration Release /p:PublishTrimmed=true -o bin/Release
-  - cmd: dotnet publish --configuration Debug /p:PublishTrimmed=true -o bin/Debug
+  - cmd: dotnet publish --configuration Release /p:PublishTrimmed=false --self-contained=false -o bin/Release
+  - cmd: dotnet publish --configuration Debug /p:PublishTrimmed=false --self-contained=false -o bin/Debug
 test: false
 deploy: false
 artifacts:
