@@ -44,7 +44,7 @@ namespace PokeSword.Text.CLI
 
                 if (Path.GetExtension(file) == ".yaml")
                 {
-                    var builder = new DeserializerBuilder().WithNamingConvention(HyphenatedNamingConvention.Instance).Build() ?? throw new Exception();
+                    var builder = new DeserializerBuilder().IgnoreUnmatchedProperties().WithNamingConvention(HyphenatedNamingConvention.Instance).Build() ?? throw new Exception();
                     var blob = TextBlob.EncodeStrings(builder.Deserialize<Entry[]>(File.ReadAllText(file)));
                     File.WriteAllBytes(Path.ChangeExtension(file, ".dat"), blob.ToArray());
                 }

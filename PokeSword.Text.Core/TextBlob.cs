@@ -13,7 +13,7 @@ namespace PokeSword.Text.Core
     {
         private const ushort Iv = 0x7C89;
         private const ushort Key = 0x2983;
-        
+
         private static Dictionary<ushort, string> Names { get; } = new Dictionary<ushort, string>
         {
             { 48639, "NULL" },
@@ -77,12 +77,12 @@ namespace PokeSword.Text.Core
             if (data.Length < sizeof(Header)) return Array.Empty<Entry>();
             var header = MemoryMarshal.Read<Header>(data);
 
-            if (header.Vector != 0) throw new InvalidDataException("Initial Vector is non-zero");
+            if (header.Reserved != 0) throw new InvalidDataException("reserved value is non-zero");
 
-            if (header.SectionDataOffset + header.TotalLength != data.Length || header.TextSections != 1)
+            if (header.SectionDataOffset + header.MaxBlockSize != data.Length || header.LanguageBlocks != 1)
                 throw new InvalidDataException("Not a text file");
 
-            if (MemoryMarshal.Read<uint>(data.Slice(header.SectionDataOffset)) != header.TotalLength)
+            if (MemoryMarshal.Read<uint>(data.Slice(header.SectionDataOffset)) != header.MaxBlockSize)
                 throw new InvalidDataException("Text section size and file size do not match");
 
             var strings = new Entry[header.LineCount];
@@ -92,7 +92,6 @@ namespace PokeSword.Text.Core
                 var offset = MemoryMarshal.Read<int>(data.Slice(lineIndex * 8 + header.SectionDataOffset + 4)) + header.SectionDataOffset;
                 var length = MemoryMarshal.Read<ushort>(data.Slice(lineIndex * 8 + header.SectionDataOffset + 8));
                 var entry = strings[lineIndex];
-                entry.MinLength = length;
                 entry.ExData = MemoryMarshal.Read<short>(data.Slice(lineIndex * 8 + header.SectionDataOffset + 10));
                 var line = MemoryMarshal.Cast<byte, ushort>(data.Slice(offset, length * 2));
                 if (crypt) Crypt(ref line, (ushort) (Iv + (ushort) (Key * lineIndex)));
@@ -103,6 +102,7 @@ namespace PokeSword.Text.Core
                 {
                     var c = line[index++];
                     if (c == 0) break;
+
                     switch (c)
                     {
                         case 0x10:
@@ -138,7 +138,7 @@ namespace PokeSword.Text.Core
                             break;
                         }
                         default:
-                            if (c > 0xE07F)
+                            if (c >= 0xE000 && c <= 0xF8FF) // Private Use Area
                             {
                                 if (s.Length > 0)
                                 {
@@ -196,8 +196,7 @@ namespace PokeSword.Text.Core
             {
                 Text = text,
                 SyntaxTree = new List<Syntax>(),
-                ExData = baseEntry?.ExData ?? 0,
-                MinLength = baseEntry?.MinLength ?? 0
+                ExData = baseEntry?.ExData ?? 0
             };
 
             var syntax = new Syntax
@@ -214,7 +213,7 @@ namespace PokeSword.Text.Core
                     case '\\' when text.ElementAtOrDefault(index + 1) == 'n':
                         syntax.Hint += '\n';
                         continue;
-                    // COMMAND/SPECIAL/EXTDATA/MINLNTH
+                    // COMMAND/SPECIAL/EXTDATA
                     case '[' when text.Length > index + 10:
                     {
                         var fullTag = text.Substring(index, text.IndexOf(']', index + 8));
@@ -227,17 +226,10 @@ namespace PokeSword.Text.Core
                                 entry.ExData = exData;
                                 index += fullTag.Length - 1;
                                 continue;
-                            case "MINLNTH" when ushort.TryParse(tagValue[0], out var minLength):
-                                entry.MinLength = minLength;
-                                index += fullTag.Length - 1;
-                                continue;
                             case "COMMAND":
                             {
                                 var tagValues = tagValue.Skip(1).Select(ushort.Parse).ToArray();
-                                if (!NamesFlipped.TryGetValue(tagValue[0], out var tagId))
-                                {
-                                    tagId = ushort.Parse(tagValue[0]);
-                                }
+                                if (!NamesFlipped.TryGetValue(tagValue[0], out var tagId)) tagId = ushort.Parse(tagValue[0]);
 
                                 if (!string.IsNullOrEmpty(syntax.Hint) || syntax.Value?.Any() == true)
                                 {
@@ -263,7 +255,7 @@ namespace PokeSword.Text.Core
                                     syntax.Value = value.ToArray();
                                     entry.SyntaxTree.Add(syntax);
                                 }
-                            
+
                                 syntax = new Syntax
                                 {
                                     Hint = tag,
@@ -283,7 +275,6 @@ namespace PokeSword.Text.Core
                         syntax.Hint += c;
                         break;
                 }
-
             }
 
             if (!string.IsNullOrEmpty(syntax.Hint) || syntax.Value?.Any() == true)
@@ -302,14 +293,14 @@ namespace PokeSword.Text.Core
             buffer = tmp;
         }
 
-        public static unsafe Span<byte> EncodeStrings(Entry[] entries, bool crypt = true)
+        public static unsafe Span<byte> EncodeStrings(Entry[] entries, bool crypt = true, bool doubleSize = false)
         {
             var header = new Header
             {
-                TextSections = 1,
+                LanguageBlocks = 1,
                 LineCount = (ushort) entries.Length,
-                TotalLength = 0,
-                Vector = 0,
+                MaxBlockSize = 0,
+                Reserved = 0,
                 SectionDataOffset = sizeof(Header)
             };
             var data = new Span<byte>(new byte[sizeof(Header) + 4 + entries.Length * 8]);
@@ -332,11 +323,12 @@ namespace PokeSword.Text.Core
                 foreach (var syntax in line.SyntaxTree)
                 {
                     var start = lineData.Length;
-                    if (syntax.Value == null)
+                    if (syntax.Value == null || syntax.Value.Length == 0)
                     {
                         if (syntax.IsSpecial || syntax.IsCommand) throw new InvalidDataException("is-special or is-command is set but no value data is passed?");
                         GrowSpan(ref lineData, syntax.Hint.Length);
-                        Encoding.Unicode.GetBytes(syntax.Hint).CopyTo(MemoryMarshal.Cast<ushort, byte>(lineData.Slice(start)));
+                        var formattedText = syntax.Hint.Select(x => line.ForceFullWidth && x > 0x3A && x < 0x7F ? (char) (x + 0xFF00 - 0x20) : x).ToArray();
+                        Encoding.Unicode.GetBytes(formattedText).CopyTo(MemoryMarshal.Cast<ushort, byte>(lineData.Slice(start)));
                     }
                     else if (syntax.IsSpecial)
                     {
@@ -358,11 +350,9 @@ namespace PokeSword.Text.Core
                     }
                 }
 
+                if (doubleSize) GrowSpan(ref lineData, lineData.Length);
+
                 GrowSpan(ref lineData, 1);
-                if (line.MinLength > 0 && line.MinLength > lineData.Length)
-                {
-                    GrowSpan(ref lineData, line.MinLength - lineData.Length);
-                }
                 if (crypt) Crypt(ref lineData, (ushort) (Iv + (ushort) (Key * lineIndex)));
                 BinaryPrimitives.WriteUInt16LittleEndian(data.Slice(lineIndex * 8 + header.SectionDataOffset + 8), (ushort) lineData.Length);
                 GrowSpan(ref data, lineData.Length * 2);
@@ -370,9 +360,9 @@ namespace PokeSword.Text.Core
                 if (lineData.Length % 4 != 0) GrowSpan(ref data, 4 - data.Length % 4);
             }
 
-            header.TotalLength = data.Length - header.SectionDataOffset;
+            header.MaxBlockSize = data.Length - header.SectionDataOffset;
             MemoryMarshal.Write(data, ref header);
-            BinaryPrimitives.WriteInt32LittleEndian(data.Slice(header.SectionDataOffset), header.TotalLength);
+            BinaryPrimitives.WriteInt32LittleEndian(data.Slice(header.SectionDataOffset), header.MaxBlockSize);
             return data;
         }
 
@@ -388,10 +378,10 @@ namespace PokeSword.Text.Core
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         private struct Header
         {
-            public ushort TextSections { get; set; }
+            public ushort LanguageBlocks { get; set; }
             public ushort LineCount { get; set; }
-            public int TotalLength { get; set; }
-            public uint Vector { get; set; }
+            public int MaxBlockSize { get; set; }
+            public uint Reserved { get; set; }
             public int SectionDataOffset { get; set; }
         }
     }

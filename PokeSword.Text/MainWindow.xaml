@@ -6,7 +6,7 @@
         mc:Ignorable="d"
         DataContext="{Binding RelativeSource={RelativeSource Self}}"
         Title="PokeSword Text Editor" Height="450" Width="800">
-    <Grid Margin="5">
+    <Grid Margin="5" AllowDrop="True" Drop="DropFile">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="1*" />
@@ -16,20 +16,25 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="1*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Button Margin="0,0,5,0" Padding="5,0" x:Name="LoadFile" Click="OpenFile">Load...</Button>
             <Button Grid.Column="1" Margin="0,0,5,0" Padding="5,0" x:Name="LoadFolder" Click="OpenFolder">Load Folder</Button>
-            <Button Grid.Column="2" Margin="0,0,5,0" Padding="5,0" x:Name="SaveYaml" Click="SaveFile">Save...</Button>
-            <Label Grid.Column="4">Warning: Loading folders will merge the files</Label>
+            <Button Grid.Column="2" Margin="0,0,5,0" Padding="5,0" x:Name="SaveFile" Click="WriteFile">Save...</Button>
+            <CheckBox Grid.Column="3" Margin="0, 5, 5, 0" Padding="5, 0" x:Name="ShouldCrypt" IsChecked="True">Encrypt</CheckBox>
+            <CheckBox Grid.Column="4" Margin="0, 5, 5, 0" Padding="5, 0" x:Name="ShouldWasteSpace">Debug</CheckBox>
+            <Label Grid.Column="6">Warning: Loading folders will merge the files</Label>
         </Grid>
-        <DataGrid Grid.Row="1" x:Name="Data" ScrollViewer.CanContentScroll="True" ItemsSource="{Binding}"
+        <DataGrid Margin="0, 5, 0, 0" Grid.Row="1" x:Name="Data" ScrollViewer.CanContentScroll="True"
+                  ItemsSource="{Binding}"
                   DataContext="{Binding Path=Entries, UpdateSourceTrigger=PropertyChanged}" AutoGenerateColumns="false"
                   CellEditEnding="UpdateTree">
             <DataGrid.Columns>
+                <DataGridCheckBoxColumn Header="FW" Binding="{Binding ForceFullWidth}" Width="15" />
                 <DataGridTextColumn Header="Text" Binding="{Binding Text}" Width="5*" />
-                <DataGridTextColumn Header="Minimum Length" Binding="{Binding MinLength}" Width="1*" IsReadOnly="True" />
                 <DataGridTextColumn Header="Extra Data" Binding="{Binding ExData}" Width="1*" IsReadOnly="True" />
             </DataGrid.Columns>
         </DataGrid>

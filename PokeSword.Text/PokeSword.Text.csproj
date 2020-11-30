@@ -7,6 +7,7 @@
         <UseWindowsForms>true</UseWindowsForms>
         <Nullable>enable</Nullable>
         <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
+        <SelfContained>False</SelfContained>
     </PropertyGroup>
 
     <ItemGroup>

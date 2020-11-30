@@ -6,6 +6,7 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Nullable>enable</Nullable>
         <RuntimeIdentifiers>win7-x64;linux-x64;osx-x64</RuntimeIdentifiers>
+        <SelfContained>False</SelfContained>
     </PropertyGroup>
 
 </Project>

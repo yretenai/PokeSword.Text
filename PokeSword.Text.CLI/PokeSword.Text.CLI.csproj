@@ -5,6 +5,7 @@
         <TargetFramework>net5.0</TargetFramework>
         <Nullable>enable</Nullable>
         <RuntimeIdentifiers>win7-x64;linux-x64;osx-x64</RuntimeIdentifiers>
+        <SelfContained>False</SelfContained>
     </PropertyGroup>
 
     <ItemGroup>

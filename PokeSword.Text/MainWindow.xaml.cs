@@ -8,10 +8,14 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Forms;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using Microsoft.Win32;
-using FolderBrowserDialog = System.Windows.Forms.FolderBrowserDialog;
+using CheckBox = System.Windows.Controls.CheckBox;
+using DragEventArgs = System.Windows.DragEventArgs;
+using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
+using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
+using TextBox = System.Windows.Controls.TextBox;
 
 namespace PokeSword.Text
 {
@@ -44,7 +48,7 @@ namespace PokeSword.Text
                 case ".yml":
                 case ".yaml":
                 {
-                    var builder = new DeserializerBuilder().WithNamingConvention(HyphenatedNamingConvention.Instance).Build() ?? throw new Exception();
+                    var builder = new DeserializerBuilder().IgnoreUnmatchedProperties().WithNamingConvention(HyphenatedNamingConvention.Instance).Build() ?? throw new Exception();
                     Entries = builder.Deserialize<Entry[]>(File.ReadAllText(dialog.FileName));
                     break;
                 }
@@ -85,7 +89,7 @@ namespace PokeSword.Text
                     case ".yml":
                     case ".yaml":
                     {
-                        var builder = new DeserializerBuilder().WithNamingConvention(HyphenatedNamingConvention.Instance).Build() ?? throw new Exception();
+                        var builder = new DeserializerBuilder().IgnoreUnmatchedProperties().WithNamingConvention(HyphenatedNamingConvention.Instance).Build() ?? throw new Exception();
                         entries.AddRange(builder.Deserialize<Entry[]>(File.ReadAllText(file)));
                         break;
                     }
@@ -102,13 +106,13 @@ namespace PokeSword.Text
             OnPropertyChanged(nameof(Entries));
         }
 
-        private void SaveFile(object sender, RoutedEventArgs e)
+        private void WriteFile(object sender, RoutedEventArgs e)
         {
             var dialog = new SaveFileDialog
             {
                 ValidateNames = true,
                 DereferenceLinks = true,
-                Filter = Utility.CreateFilter(("Binary Text files", new[] { "bin", "dat" }), ("Decrypted Binary Text files", new[] { "text" }), ("Syntax files", new[] { "yaml", "yml" }), ("Text files", new[] { "txt" }))
+                Filter = Utility.CreateFilter(("Binary Text files", new[] { "bin", "dat" }), ("Syntax files", new[] { "yaml", "yml" }), ("Text files", new[] { "txt" }))
             };
 
             if (dialog.ShowDialog() != true) return;
@@ -121,17 +125,11 @@ namespace PokeSword.Text
                     File.WriteAllText(Path.ChangeExtension(dialog.FileName, ".yaml"), builder.Serialize(Entries));
                     break;
                 case ".txt":
-                    File.WriteAllLines(dialog.FileName, Entries.Select((x, y) => $"{y}, {x.Text.Replace("\n", "\\n")}[EXTDATA {x.ExData}][MINLNTH {x.MinLength}]"));
+                    File.WriteAllLines(dialog.FileName, Entries.Select((x, y) => $"{y}, {x.Text.Replace("\n", "\\n")}[EXTDATA {x.ExData}]"));
                     break;
-                case ".text":
-                {
-                    var blob = TextBlob.EncodeStrings(Entries, false);
-                    File.WriteAllBytes(dialog.FileName, blob.ToArray());
-                    break;
-                }
                 default:
                 {
-                    var blob = TextBlob.EncodeStrings(Entries);
+                    var blob = TextBlob.EncodeStrings(Entries, ShouldCrypt.IsChecked == true, ShouldWasteSpace.IsChecked == true);
                     File.WriteAllBytes(dialog.FileName, blob.ToArray());
                     break;
                 }
@@ -146,8 +144,44 @@ namespace PokeSword.Text
         {
             if (e.EditAction != DataGridEditAction.Commit) return;
             var entry = (Entry) e.Row.Item;
-            var text = ((TextBox) e.EditingElement).Text;
-            Entries[e.Row.GetIndex()] = TextBlob.ParseEntry(text, entry);
+            switch (e.EditingElement)
+            {
+                case TextBox textBox:
+                {
+                    var text = textBox.Text;
+                    Entries[e.Row.GetIndex()] = TextBlob.ParseEntry(text, entry);
+                    break;
+                }
+                case CheckBox checkBox:
+                    Entries[e.Row.GetIndex()].ForceFullWidth = checkBox.IsChecked == true;
+                    break;
+            }
+        }
+
+        private void DropFile(object sender, DragEventArgs e)
+        {
+            var file = (e.Data.GetData("FileNameW") as string[] ?? Array.Empty<string>()).FirstOrDefault();
+            if (string.IsNullOrEmpty(file)) return;
+
+            var ext = Path.GetExtension(file).ToLowerInvariant();
+            switch (ext)
+            {
+                case ".yml":
+                case ".yaml":
+                {
+                    var builder = new DeserializerBuilder().IgnoreUnmatchedProperties().WithNamingConvention(HyphenatedNamingConvention.Instance).Build() ?? throw new Exception();
+                    Entries = builder.Deserialize<Entry[]>(File.ReadAllText(file));
+                    break;
+                }
+                case ".txt":
+                    Entries = File.ReadAllLines(file).Select(TextBlob.ParseEntry).ToArray();
+                    break;
+                default:
+                    Entries = TextBlob.DecodeStrings(File.ReadAllBytes(file));
+                    break;
+            }
+
+            OnPropertyChanged(nameof(Entries));
         }
     }
 }
